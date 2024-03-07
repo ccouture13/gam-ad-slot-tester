@@ -1,4 +1,4 @@
-# Ad Slot Configuration Tool
+# Ad Slot Tester
 
 This project provides a simple web-based interface for configuring and refreshing advertisement slots using the Google Publisher Tag (GPT) library. It's designed to assist publishers in setting up ad units, defining targeting parameters, and testing the functionality of their ad placements.
 
