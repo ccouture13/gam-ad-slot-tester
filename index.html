@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <title>Ad Slot Configuration</title>
+    <script async src="https://www.googletagservices.com/tag/js/gpt.js"></script>
+    <style>
+
+        html {
+            background-color: #FFFFFF;
+        }
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            font-style: normal;
+            font-size: 24px;
+            line-height: 32px;
+            color: #434343;
+            margin: 20px; 
+            color: #333;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 20px;
+            min-height: 100vh; /* Vertically center content */
+        }
+        .configuration-container {
+            flex-grow: 1;
+            max-width: 40em;
+            background: #F8F9FD;
+            border: 1px solid #E7E7E7;
+            border-radius: 6px;
+            padding: 24px;
+            gap: 18px;
+        }
+        .form-row { 
+            display: flex; 
+            gap: 20px; 
+            margin-bottom: 15px;
+        }
+        .form-group { 
+            display: flex; 
+            flex-direction: column;
+            margin-bottom: 15px; /* Adjust vertical spacing here */
+            max-width: inherit;
+        }
+        .form-group label { 
+            font-size: 14px; 
+            margin-bottom: 5px; 
+            color: #555;
+        }
+        .form-group input { 
+            padding: 10px; 
+            border: 1px solid #bbb; 
+            border-radius: 4px; 
+            font-size: 14px; 
+            background-color: white;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+        }
+        .form-group input, #autoRefreshDropdown { 
+            padding: 10px; 
+            border: 1px solid #bbb; 
+            border-radius: 4px; 
+            font-size: 14px; 
+            background-color: white;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+        }
+        .action-buttons { 
+            height: 40px; /* Standardize height */
+            display: flex; 
+            gap: 10px;
+            margin-bottom: 20px; /* Adjust for space above buttons */
+        }
+        button { 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 4px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            color: white; 
+            background-color: #0AA5A5; 
+            box-shadow: 0 2px 4px rgba(0,0,0,.2);
+            transition: background-color .3s;
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
+        .log {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: scroll;
+            font-size: 14px;
+            border-radius: 4px;
+            max-height: 200px;
+            min-height: 200px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            margin-bottom: 15px; /* Adjust for space below log */
+            max-width: inherit;
+            font-family: 'Courier New', Courier, monospace; /* Use a monospace font */
+        }
+
+        .log pre {
+            margin: 0; /* Remove default margin for <pre> element */
+        }
+
+        .log p {
+            margin: 5px 0; /* Increase spacing between log items */
+        }
+
+        .log .log-item::before {
+            content: ">> "; /* Prefix each log item with ">>" */
+            color: #555; /* Set color for the prefix */
+        }
+
+        .log p:last-child {
+            margin-bottom: 0; /* Remove bottom margin for the last log message */
+        }
+        .ad-slot { 
+            width: 300px;
+            height: 250px;
+            background-color: #fff; 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            border-radius: 4px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="configuration-container">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="network-code">Network Code:</label>
+                <input type="text" id="network-code" placeholder="123456789">
+            </div>
+            <div class="form-group">
+                <label for="ad-unit-path">Ad Unit:</label>
+                <input type="text" id="ad-unit-path" placeholder="ad_unit">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="ppid">Publisher Provided ID</label>
+            <input type="text" id="ppid" placeholder="Enter Value">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="key">Key</label>
+                <input type="text" id="key" placeholder="Enter Value">
+            </div>
+            <div class="form-group">
+                <label for="value">Value</label>
+                <input type="text" id="value" placeholder="Enter Value">
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button id="configureAdButton">Configure Ad</button>
+            <button id="refreshAdButton">Refresh Ad</button>
+            <div class="form-group">
+                <select id="autoRefreshDropdown">
+                    <option value="off">AUTO REFRESH OFF</option>
+                    <option value="on">AUTO REFRESH ON (5s)</option>
+                </select>
+            </div>
+            <button id="cancelAutoRefreshButton" style="display: none; background-color: #080C36; ">Cancel</button>
+        </div>
+        <div id="log" class="log"></div>
+    </div>
+    <div id="ad-slot" class="ad-slot">Ad will load here</div>
+    
+    <script>
+        window.googletag = window.googletag || {cmd: []};
+        
+        googletag.cmd.push(function() {
+            // Define a slot as a global variable for easy access.
+            window.slot = null;
+        });
+    
+        let refreshCount = 0; // Global variable to keep track of refresh count
+        let autoRefreshInterval = null; // Variable to store interval ID
+    
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const logItem = document.createElement('p');
+            logItem.classList.add('log-item');
+            logItem.innerHTML = message;
+            logElement.appendChild(logItem);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        function configureAdSlots() {
+            const networkCode = document.getElementById('network-code').value;
+            const adUnitPath = document.getElementById('ad-unit-path').value;
+            const ppid = document.getElementById('ppid').value;
+            const keyInput = document.getElementById('key');
+            const key = keyInput ? keyInput.value : 'none';
+            const valueInput = document.getElementById('value');
+            const value = valueInput ? valueInput.value : 'none';
+
+
+            window.googletag = window.googletag || { cmd: [] };
+            googletag.cmd.push(function() {
+                // Clear existing slots to prevent errors on reconfiguration.
+                googletag.pubads().clear(); 
+                
+                // Define and configure the ad slot.
+                const slot = googletag.defineSlot(`/${networkCode}/${adUnitPath}`, [300, 250], 'ad-slot');
+                slot.addService(googletag.pubads());
+
+                // Set PPID if provided.
+                if(ppid) {
+                    googletag.pubads().setPublisherProvidedId(ppid);
+                    log('<strong>Publisher Provided ID</strong>' + " = " + ppid);
+                }
+                
+                // Set key/value targeting if provided.
+                if(key && value) {
+                    slot.setTargeting(key, value);
+                    log('<strong>K/V Pair</strong>' + " = " + key + " / " + value);
+                }
+
+                // Enable GPT services and display the ad slot.
+                googletag.enableServices();
+                log('<strong>GPT Services Enabled</strong>');
+
+                // Display the ad slot and hide the placeholder text.
+                const adSlotElement = document.getElementById('ad-slot');
+                adSlotElement.innerHTML = ''; // Clear any existing content
+                googletag.display('ad-slot');
+                log('<strong>Ad Slot Rendered</strong>' + " = " + adUnitPath + " for network code " + networkCode);
+            });
+        }
+    
+        function refreshAdSlots() {
+            googletag.pubads().refresh();
+            refreshCount++; // Increment refresh count
+            log(`<strong>Ad slot refreshed.</strong> (${refreshCount})`); // Log with count
+        }
+    
+        function toggleAutoRefresh() {
+            const autoRefreshStatus = document.getElementById('autoRefreshDropdown').value;
+            const cancelBtn = document.getElementById('cancelAutoRefreshButton');
+            if (autoRefreshStatus === 'on') {
+                if (!autoRefreshInterval) {
+                    autoRefreshInterval = setInterval(refreshAdSlots, 5000); // Refresh every 5 seconds
+                    cancelBtn.style.display = 'inline-block'; // Show the cancel button
+                }
+            } else {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                cancelBtn.style.display = 'none'; // Hide the cancel button
+            }
+        }
+    
+        function cancelAutoRefresh() {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+            document.getElementById('autoRefreshDropdown').value = 'off'; // Reset dropdown
+            document.getElementById('cancelAutoRefreshButton').style.display = 'none'; // Hide button
+            log('<strong>Auto refresh cancelled.</strong>'); // Log cancellation
+        }
+    
+        // Attaching event listeners to buttons and dropdown
+        document.getElementById('configureAdButton').addEventListener('click', configureAdSlots);
+        document.getElementById('refreshAdButton').addEventListener('click', refreshAdSlots);
+        document.getElementById('autoRefreshDropdown').addEventListener('change', toggleAutoRefresh);
+        document.getElementById('cancelAutoRefreshButton').addEventListener('click', cancelAutoRefresh);
+    
+        // Load the saved values from local storage on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const fields = ['network-code', 'ad-unit-path', 'ppid', 'key', 'value', 'refresh-interval'];
+            fields.forEach(function(field) {
+                const value = localStorage.getItem(field);
+                if (value) {
+                    document.getElementById(field).value = value;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
