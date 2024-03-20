@@ -1,12 +1,11 @@
 window.googletag = window.googletag || {cmd: []};
         
 googletag.cmd.push(function() {
-    // Define a slot as a global variable for easy access.
     window.slot = null;
 });
 
-let refreshCount = 0; // Global variable to keep track of refresh count
-let autoRefreshInterval = null; // Variable to store interval ID
+let refreshCount = 0;
+let autoRefreshInterval = null;
 
 function log(message) {
     const logElement = document.getElementById('log');
@@ -53,7 +52,7 @@ function configureAdSlots() {
 
         // Display the ad slot and hide the placeholder text.
         const adSlotElement = document.getElementById('ad-slot');
-        adSlotElement.innerHTML = ''; // Clear any existing content
+        adSlotElement.innerHTML = '';
         googletag.display('ad-slot');
         log('<strong>Ad Slot Rendered</strong>' + " = " + adUnitPath + " for network code " + networkCode);
     });
@@ -61,8 +60,8 @@ function configureAdSlots() {
 
 function refreshAdSlots() {
     googletag.pubads().refresh();
-    refreshCount++; // Increment refresh count
-    log(`<strong>Ad slot refreshed.</strong> (${refreshCount})`); // Log with count
+    refreshCount++;
+    log(`<strong>Ad slot refreshed.</strong> (${refreshCount})`);
 }
 
 function toggleAutoRefresh() {
@@ -70,37 +69,55 @@ function toggleAutoRefresh() {
     const cancelBtn = document.getElementById('cancelAutoRefreshButton');
     if (autoRefreshStatus === 'on') {
         if (!autoRefreshInterval) {
-            autoRefreshInterval = setInterval(refreshAdSlots, 5000); // Refresh every 5 seconds
-            cancelBtn.style.display = 'inline-block'; // Show the cancel button
+            autoRefreshInterval = setInterval(refreshAdSlots, 5000);
+            cancelBtn.style.display = 'inline-block';
         }
     } else {
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
-        cancelBtn.style.display = 'none'; // Hide the cancel button
+        cancelBtn.style.display = 'none';
     }
 }
 
 function cancelAutoRefresh() {
     clearInterval(autoRefreshInterval);
     autoRefreshInterval = null;
-    document.getElementById('autoRefreshDropdown').value = 'off'; // Reset dropdown
-    document.getElementById('cancelAutoRefreshButton').style.display = 'none'; // Hide button
-    log('<strong>Auto refresh cancelled.</strong>'); // Log cancellation
+    document.getElementById('autoRefreshDropdown').value = 'off';
+    document.getElementById('cancelAutoRefreshButton').style.display = 'none';
+    log('<strong>Auto refresh cancelled.</strong>');
 }
 
-// Attaching event listeners to buttons and dropdown
 document.getElementById('configureAdButton').addEventListener('click', configureAdSlots);
 document.getElementById('refreshAdButton').addEventListener('click', refreshAdSlots);
 document.getElementById('autoRefreshDropdown').addEventListener('change', toggleAutoRefresh);
 document.getElementById('cancelAutoRefreshButton').addEventListener('click', cancelAutoRefresh);
 
-// Load the saved values from local storage on page load
-window.addEventListener('DOMContentLoaded', function() {
-    const fields = ['network-code', 'ad-unit-path', 'key', 'value', 'refresh-interval'];
-    fields.forEach(function(field) {
-        const value = localStorage.getItem(field);
-        if (value) {
-            document.getElementById(field).value = value;
+document.addEventListener('DOMContentLoaded', () => {
+    const fields = ['network-code', 'ad-unit-path', 'ppid', 'key', 'value', 'autoRefreshDropdown'];
+    fields.forEach(field => {
+        const inputElement = document.getElementById(field);
+        if (!inputElement) {
+          return;
         }
+
+        // Load saved value from localStorage
+        const savedValue = localStorage.getItem(field);
+        if (savedValue) {
+          inputElement.value = savedValue;
+        }
+
+        // Save to localStorage on change
+        inputElement.addEventListener('change', () => {
+            localStorage.setItem(field, inputElement.value);
+        });
     });
+
+    document.getElementById('configureAdButton').addEventListener('click', configureAdSlots);
+    document.getElementById('refreshAdButton').addEventListener('click', refreshAdSlots);
+    document.getElementById('autoRefreshDropdown').addEventListener('change', () => {
+        toggleAutoRefresh();
+        const autoRefreshDropdown = document.getElementById('autoRefreshDropdown');
+        localStorage.setItem('autoRefreshDropdown', autoRefreshDropdown.value);
+    });
+    document.getElementById('cancelAutoRefreshButton').addEventListener('click', cancelAutoRefresh);
 });
