@@ -6,7 +6,12 @@ googletag.cmd.push(function() {
 
 let refreshCount = 0;
 let autoRefreshInterval = null;
+let ppidArray = [];
 
+let currentPPIDIndex = 0; // Index to start PPID iteration.
+let refreshInterval = 5; // This is seconds, will be multiplied by 1000 to pass as ms.
+
+// Defines the "logs" section.
 function log(message) {
     const logElement = document.getElementById('log');
     const logItem = document.createElement('p');
@@ -15,6 +20,10 @@ function log(message) {
     logElement.appendChild(logItem);
     logElement.scrollTop = logElement.scrollHeight;
 }
+
+// Configures ad slot based ont he entered information.
+// PPID must be set FIRST so that it can be seen in the subsequent ad requests.
+// Orer is CLEAR -> PPID -> DEFINESLOT -> K/V -> DISPLAY AD
 function configureAdSlots() {
     const networkCode = document.getElementById('network-code').value;
     const adUnitPath = document.getElementById('ad-unit-path').value;
@@ -24,33 +33,34 @@ function configureAdSlots() {
     const valueInput = document.getElementById('value');
     const value = valueInput ? valueInput.value : 'none';
 
+    ppidArray = ppid.split(',');
+    currentPPIDIndex = 0;
 
     window.googletag = window.googletag || { cmd: [] };
     googletag.cmd.push(function() {
-        // Clear existing slots to prevent errors on reconfiguration.
         googletag.pubads().clear(); 
 
-        // Set PPID if provided.
-        if(ppid) {
-            googletag.pubads().setPublisherProvidedId(ppid);
-            log('<strong>Publisher Provided ID</strong>' + " = " + ppid);
+        // Set initial PPID.
+        if(ppidArray.length > 0) {
+            googletag.pubads().setPublisherProvidedId(ppidArray[currentPPIDIndex]);
+            log('<strong>Publisher Provided ID</strong>' + " = " + ppidArray[currentPPIDIndex]);
         }
 
-        // Define and configure the ad slot.
+        // Configure ad slot.
         const slot = googletag.defineSlot(`/${networkCode}/${adUnitPath}`, [300, 250], 'ad-slot');
         slot.addService(googletag.pubads());
 
-        // Set key/value targeting if provided.
+        // Set K/V pair to retrieve ad.
         if(key && value) {
             slot.setTargeting(key, value);
             log('<strong>K/V Pair</strong>' + " = " + key + " / " + value);
         }
 
-        // Enable GPT services and display the ad slot.
+        // Enable GPT services.
         googletag.enableServices();
         log('<strong>GPT Services Enabled</strong>');
 
-        // Display the ad slot and hide the placeholder text.
+        // Display ad.
         const adSlotElement = document.getElementById('ad-slot');
         adSlotElement.innerHTML = '';
         googletag.display('ad-slot');
@@ -58,18 +68,31 @@ function configureAdSlots() {
     });
 }
 
+// This is the code to reresh the ad slot when you change any values.
 function refreshAdSlots() {
     googletag.pubads().refresh();
     refreshCount++;
+
+    // Cycle through PPIDs if there are multiple passed as comma delimited.
+    if (ppidArray.length > 1) {
+        currentPPIDIndex = (currentPPIDIndex + 1) % ppidArray.length;
+        googletag.pubads().setPublisherProvidedId(ppidArray[currentPPIDIndex]);
+        log('<strong>Publisher Provided ID</strong>' + " = " + ppidArray[currentPPIDIndex]);
+    }
+
     log(`<strong>Ad slot refreshed.</strong> (${refreshCount})`);
 }
 
+// This enables auto refresh at a 5s delay, beats the Google rate limit.
+// When you pass comma delimited PPIDs, this will cycle thorough all PPIDs indefinitely.
+// This allows you to let this run for a little and your PPIDs will be seen by Google.
+// Later you can pass those IDs through batch upload of identifiers.
 function toggleAutoRefresh() {
     const autoRefreshStatus = document.getElementById('autoRefreshDropdown').value;
     const cancelBtn = document.getElementById('cancelAutoRefreshButton');
     if (autoRefreshStatus === 'on') {
         if (!autoRefreshInterval) {
-            autoRefreshInterval = setInterval(refreshAdSlots, 5000);
+            autoRefreshInterval = setInterval(refreshAdSlots, refreshInterval*1000);
             cancelBtn.style.display = 'inline-block';
         }
     } else {
@@ -79,6 +102,7 @@ function toggleAutoRefresh() {
     }
 }
 
+// Self explanatory, cancels the auto refresh.
 function cancelAutoRefresh() {
     clearInterval(autoRefreshInterval);
     autoRefreshInterval = null;
@@ -87,6 +111,7 @@ function cancelAutoRefresh() {
     log('<strong>Auto refresh cancelled.</strong>');
 }
 
+// Set event listeners.
 document.getElementById('configureAdButton').addEventListener('click', configureAdSlots);
 document.getElementById('refreshAdButton').addEventListener('click', refreshAdSlots);
 document.getElementById('autoRefreshDropdown').addEventListener('change', toggleAutoRefresh);
@@ -100,13 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // Load saved value from localStorage
+        // Loads saved values from local storage.
         const savedValue = localStorage.getItem(field);
         if (savedValue) {
           inputElement.value = savedValue;
         }
 
-        // Save to localStorage on change
+        // Saves all values to localStorage on change.
         inputElement.addEventListener('change', () => {
             localStorage.setItem(field, inputElement.value);
         });
